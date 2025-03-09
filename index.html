@@ -21,6 +21,11 @@
     </header>
 
     <main class="container mx-auto p-4 max-w-6xl space-y-6">
+        <!-- Tombol Kirim Masukan -->
+        <section class="text-center">
+            <button id="feedbackBtn" class="bg-yellow-600 text-white px-6 py-2 rounded-md hover:bg-yellow-700 transition-colors">Kirim Masukan</button>
+        </section>
+
         <!-- Tab Bulanan -->
         <section class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4">Pilih Bulan</h2>
@@ -302,6 +307,18 @@
         </div>
     </div>
 
+    <!-- Modal Feedback (Google Form) -->
+    <div id="feedbackModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-3xl p-6">
+            <h3 class="text-xl font-semibold mb-4">Kirim Masukan</h3>
+            <iframe id="feedbackIframe" src="" class="w-full h-[500px] border-0" frameborder="0" marginheight="0" marginwidth="0">Memuat...</iframe>
+            <div class="flex justify-end mt-4">
+                <button type="button" id="closeFeedbackModal"
+                    class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Libraries untuk PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -313,12 +330,12 @@
         /* ===============================
            Inisialisasi Data Global
            =============================== */
-        const STORAGE_KEY = 'transactionsByMonth'; // Diubah dari 'transactions' menjadi objek per bulan
-        const ACTIVE_MONTH_KEY = 'activeMonth'; // Menyimpan bulan aktif
-        const BUDGET_KEY = 'monthlyBudgets'; // Diubah menjadi objek per bulan
+        const STORAGE_KEY = 'transactionsByMonth';
+        const ACTIVE_MONTH_KEY = 'activeMonth';
+        const BUDGET_KEY = 'monthlyBudgets';
         const CATEGORY_KEY = 'categories';
         let transactionsByMonth = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-        let activeMonth = localStorage.getItem(ACTIVE_MONTH_KEY) || new Date().toISOString().slice(0, 7); // Default ke bulan ini
+        let activeMonth = localStorage.getItem(ACTIVE_MONTH_KEY) || new Date().toISOString().slice(0, 7);
         let monthlyBudgets = JSON.parse(localStorage.getItem(BUDGET_KEY)) || {};
         let categories = JSON.parse(localStorage.getItem(CATEGORY_KEY)) || ["Umum", "Gaji", "Makanan", "Transportasi", "Hiburan"];
 
@@ -393,9 +410,9 @@
                 updateBudgetStorage();
                 const remainingMonths = Object.keys(transactionsByMonth);
                 if (remainingMonths.length > 0) {
-                    activeMonth = remainingMonths[0]; // Pindah ke bulan pertama yang tersisa
+                    activeMonth = remainingMonths[0];
                 } else {
-                    activeMonth = new Date().toISOString().slice(0, 7); // Kembali ke bulan ini jika tidak ada tab
+                    activeMonth = new Date().toISOString().slice(0, 7);
                     transactionsByMonth[activeMonth] = [];
                     updateLocalStorage();
                 }
@@ -734,19 +751,18 @@
                     t.recurring ? 'Ya' : 'Tidak'
                 ]);
             });
-            // Tambahkan total pemasukan, pengeluaran, dan saldo sisa
-            worksheet.addRow([]); // Baris kosong
+            worksheet.addRow([]);
             const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             const totalBalance = totalIncome - totalExpense;
             worksheet.addRow(['Total Pemasukan', '', '', '', totalIncome, '']);
             worksheet.addRow(['Total Pengeluaran', '', '', '', totalExpense, '']);
             worksheet.addRow(['Saldo Sisa', '', '', '', totalBalance, '']);
-            const totalRows = worksheet.getRows(worksheet.rowCount - 2, 3); // Ambil 3 baris terakhir
+            const totalRows = worksheet.getRows(worksheet.rowCount - 2, 3);
             totalRows.forEach(row => {
                 row.eachCell((cell, colNumber) => {
-                    if (colNumber === 5) { // Kolom Jumlah
-                        cell.numFmt = '"Rp"#,##0'; // Format Rupiah
+                    if (colNumber === 5) {
+                        cell.numFmt = '"Rp"#,##0';
                         cell.font = { bold: true, size: 12, name: 'Times New Roman' };
                     }
                     cell.border = {
@@ -800,8 +816,7 @@
                 styles: { font: 'times', fontSize: 12 }
             };
             doc.autoTable(tableConfig);
-            // Tambahkan total pemasukan, pengeluaran, dan saldo sisa
-            const finalY = doc.lastAutoTable.finalY || 50; // Posisi Y setelah tabel
+            const finalY = doc.lastAutoTable.finalY || 50;
             const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             const totalBalance = totalIncome - totalExpense;
@@ -842,11 +857,22 @@
             e.target.value = formatRupiah(numericValue);
         });
 
-        document.getElementById('editAmount').addEventListener('input', (e) => {
-            let numericValue = e.target.value.replace(/\D/g, "");
-            e.target.value = formatRupiah(numericValue);
+        /* ===============================
+           Fitur Kirim Masukan (Google Form dalam Modal)
+           =============================== */
+        const feedbackModal = document.getElementById('feedbackModal');
+        const feedbackIframe = document.getElementById('feedbackIframe');
+        const feedbackFormUrl = 'https://forms.gle/ZEJg5VBv834P6wPV9'; // Ganti dengan URL Google Form Anda
+
+        document.getElementById('feedbackBtn').addEventListener('click', () => {
+            feedbackIframe.src = feedbackFormUrl;
+            feedbackModal.classList.remove('hidden');
         });
 
+        document.getElementById('closeFeedbackModal').addEventListener('click', () => {
+            feedbackModal.classList.add('hidden');
+            feedbackIframe.src = ''; // Reset iframe untuk menghemat resource
+        });
     </script>
 </body>
 
