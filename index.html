@@ -21,6 +21,16 @@
     </header>
 
     <main class="container mx-auto p-4 max-w-6xl space-y-6">
+        <!-- Tab Bulanan -->
+        <section class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Pilih Bulan</h2>
+            <div class="flex flex-wrap gap-2">
+                <select id="monthSelect" class="rounded-md border-gray-300 shadow-sm"></select>
+                <button id="addMonthBtn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Tambah Bulan</button>
+                <button id="deleteMonthBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700">Hapus Bulan</button>
+            </div>
+        </section>
+
         <!-- Informasi Laporan (Header) -->
         <section class="bg-white p-6 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4">Informasi Laporan</h2>
@@ -303,11 +313,13 @@
         /* ===============================
            Inisialisasi Data Global
            =============================== */
-        const STORAGE_KEY = 'transactions';
-        const BUDGET_KEY = 'monthlyBudget';
+        const STORAGE_KEY = 'transactionsByMonth'; // Diubah dari 'transactions' menjadi objek per bulan
+        const ACTIVE_MONTH_KEY = 'activeMonth'; // Menyimpan bulan aktif
+        const BUDGET_KEY = 'monthlyBudgets'; // Diubah menjadi objek per bulan
         const CATEGORY_KEY = 'categories';
-        let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        let monthlyBudget = localStorage.getItem(BUDGET_KEY) || 0;
+        let transactionsByMonth = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        let activeMonth = localStorage.getItem(ACTIVE_MONTH_KEY) || new Date().toISOString().slice(0, 7); // Default ke bulan ini
+        let monthlyBudgets = JSON.parse(localStorage.getItem(BUDGET_KEY)) || {};
         let categories = JSON.parse(localStorage.getItem(CATEGORY_KEY)) || ["Umum", "Gaji", "Makanan", "Transportasi", "Hiburan"];
 
         const tips = [
@@ -325,14 +337,80 @@
             return value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         }
         function updateLocalStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(transactionsByMonth));
         }
         function updateBudgetStorage() {
-            localStorage.setItem(BUDGET_KEY, monthlyBudget);
+            localStorage.setItem(BUDGET_KEY, JSON.stringify(monthlyBudgets));
         }
         function updateCategoryStorage() {
             localStorage.setItem(CATEGORY_KEY, JSON.stringify(categories));
         }
+        function updateActiveMonthStorage() {
+            localStorage.setItem(ACTIVE_MONTH_KEY, activeMonth);
+        }
+
+        /* ===============================
+           Pengelolaan Tab Bulanan
+           =============================== */
+        function populateMonthSelect() {
+            const monthSelect = document.getElementById('monthSelect');
+            monthSelect.innerHTML = '';
+            const months = Object.keys(transactionsByMonth).sort().reverse();
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = month;
+                monthSelect.appendChild(option);
+            });
+            monthSelect.value = activeMonth;
+        }
+        function addNewMonth() {
+            const newMonth = prompt("Masukkan bulan dan tahun (YYYY-MM):");
+            if (newMonth && newMonth.match(/^\d{4}-\d{2}$/)) {
+                if (!transactionsByMonth[newMonth]) {
+                    transactionsByMonth[newMonth] = [];
+                    updateLocalStorage();
+                    populateMonthSelect();
+                    activeMonth = newMonth;
+                    updateActiveMonthStorage();
+                    updateUI();
+                } else {
+                    alert("Bulan tersebut sudah ada.");
+                }
+            } else {
+                alert("Format bulan tidak valid. Gunakan YYYY-MM.");
+            }
+        }
+        function deleteMonth() {
+            if (Object.keys(transactionsByMonth).length === 0) {
+                alert("Tidak ada bulan untuk dihapus.");
+                return;
+            }
+            if (confirm(`Apakah Anda yakin ingin menghapus data bulan ${activeMonth}?`)) {
+                delete transactionsByMonth[activeMonth];
+                delete monthlyBudgets[activeMonth];
+                updateLocalStorage();
+                updateBudgetStorage();
+                const remainingMonths = Object.keys(transactionsByMonth);
+                if (remainingMonths.length > 0) {
+                    activeMonth = remainingMonths[0]; // Pindah ke bulan pertama yang tersisa
+                } else {
+                    activeMonth = new Date().toISOString().slice(0, 7); // Kembali ke bulan ini jika tidak ada tab
+                    transactionsByMonth[activeMonth] = [];
+                    updateLocalStorage();
+                }
+                updateActiveMonthStorage();
+                populateMonthSelect();
+                updateUI();
+            }
+        }
+        document.getElementById('monthSelect').addEventListener('change', function () {
+            activeMonth = this.value;
+            updateActiveMonthStorage();
+            updateUI();
+        });
+        document.getElementById('addMonthBtn').addEventListener('click', addNewMonth);
+        document.getElementById('deleteMonthBtn').addEventListener('click', deleteMonth);
 
         /* ===============================
            Dashboard Chart (Bar Chart: Income vs Expense)
@@ -359,6 +437,7 @@
             });
         }
         function updateChart() {
+            const transactions = transactionsByMonth[activeMonth] || [];
             const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
             chart.data.datasets[0].data = [totalIncome, totalExpense];
@@ -369,7 +448,8 @@
            Budgeting
            =============================== */
         function updateBudgetDisplay() {
-            document.getElementById('currentBudget').textContent = `Rp${formatRupiah(monthlyBudget.toString())}`;
+            const budget = monthlyBudgets[activeMonth] || 0;
+            document.getElementById('currentBudget').textContent = `Rp${formatRupiah(budget.toString())}`;
         }
 
         /* ===============================
@@ -420,6 +500,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('date').value = new Date().toISOString().split('T')[0];
             initChart();
+            populateMonthSelect();
             updateChart();
             updateBudgetDisplay();
             populateCategorySelect();
@@ -455,7 +536,7 @@
         budgetForm.addEventListener('submit', function (e) {
             e.preventDefault();
             const rawBudget = document.getElementById('monthlyBudget').value.replace(/\D/g, "");
-            monthlyBudget = rawBudget;
+            monthlyBudgets[activeMonth] = rawBudget;
             updateBudgetStorage();
             updateBudgetDisplay();
             alert("Budget bulanan disimpan!");
@@ -490,7 +571,10 @@
                 recurring: document.getElementById('recurring').checked,
                 interval: document.getElementById('interval').value
             };
-            transactions.push(transaction);
+            if (!transactionsByMonth[activeMonth]) {
+                transactionsByMonth[activeMonth] = [];
+            }
+            transactionsByMonth[activeMonth].push(transaction);
             updateLocalStorage();
             updateUI();
             transactionForm.reset();
@@ -501,7 +585,7 @@
            Delete Transaction
            =============================== */
         function deleteTransaction(id) {
-            transactions = transactions.filter(transaction => transaction.id !== id);
+            transactionsByMonth[activeMonth] = transactionsByMonth[activeMonth].filter(transaction => transaction.id !== id);
             updateLocalStorage();
             updateUI();
         }
@@ -511,7 +595,7 @@
            =============================== */
         let editingTransactionId = null;
         function openEditModal(id) {
-            const transaction = transactions.find(t => t.id === id);
+            const transaction = transactionsByMonth[activeMonth].find(t => t.id === id);
             if (transaction) {
                 editingTransactionId = id;
                 document.getElementById('editType').value = transaction.type;
@@ -547,7 +631,7 @@
                 recurring: document.getElementById('editRecurring').checked,
                 interval: document.getElementById('editInterval').value
             };
-            transactions = transactions.map(t => t.id === editingTransactionId ? updatedTransaction : t);
+            transactionsByMonth[activeMonth] = transactionsByMonth[activeMonth].map(t => t.id === editingTransactionId ? updatedTransaction : t);
             updateLocalStorage();
             updateUI();
             closeEditModal();
@@ -557,6 +641,7 @@
            Update UI dan Tabel Transaksi
            =============================== */
         function updateUI() {
+            const transactions = transactionsByMonth[activeMonth] || [];
             let filteredTransactions = transactions.slice();
             if (startDateInput.value) {
                 filteredTransactions = filteredTransactions.filter(t => t.date >= startDateInput.value);
@@ -610,6 +695,7 @@
            Export ke Excel & PDF
            =============================== */
         function exportExcel() {
+            const transactions = transactionsByMonth[activeMonth] || [];
             if (transactions.length === 0) {
                 alert("Tidak ada transaksi untuk diekspor!");
                 return;
@@ -620,6 +706,7 @@
             const worksheet = workbook.addWorksheet('Transaksi');
             worksheet.addRow(['Nama', headerName]);
             worksheet.addRow(['Deskripsi', headerDescription]);
+            worksheet.addRow(['Bulan', activeMonth]);
             worksheet.addRow([]);
             const headerRow = worksheet.addRow(['Tanggal', 'Nama Transaksi', 'Kategori', 'Tipe', 'Jumlah', 'Berkala']);
             headerRow.eachCell((cell) => {
@@ -647,6 +734,29 @@
                     t.recurring ? 'Ya' : 'Tidak'
                 ]);
             });
+            // Tambahkan total pemasukan, pengeluaran, dan saldo sisa
+            worksheet.addRow([]); // Baris kosong
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const totalBalance = totalIncome - totalExpense;
+            worksheet.addRow(['Total Pemasukan', '', '', '', totalIncome, '']);
+            worksheet.addRow(['Total Pengeluaran', '', '', '', totalExpense, '']);
+            worksheet.addRow(['Saldo Sisa', '', '', '', totalBalance, '']);
+            const totalRows = worksheet.getRows(worksheet.rowCount - 2, 3); // Ambil 3 baris terakhir
+            totalRows.forEach(row => {
+                row.eachCell((cell, colNumber) => {
+                    if (colNumber === 5) { // Kolom Jumlah
+                        cell.numFmt = '"Rp"#,##0'; // Format Rupiah
+                        cell.font = { bold: true, size: 12, name: 'Times New Roman' };
+                    }
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+            });
             worksheet.columns = [
                 { width: 15 },
                 { width: 30 },
@@ -656,10 +766,11 @@
                 { width: 15 }
             ];
             workbook.xlsx.writeBuffer().then(buffer => {
-                saveAs(new Blob([buffer]), 'transaksi.xlsx');
+                saveAs(new Blob([buffer]), `transaksi_${activeMonth}.xlsx`);
             });
         }
         function exportPDF() {
+            const transactions = transactionsByMonth[activeMonth] || [];
             if (transactions.length === 0) {
                 alert("Tidak ada transaksi untuk diekspor!");
                 return;
@@ -672,6 +783,7 @@
             const headerDescription = reportHeader.description || "";
             doc.text(`Nama: ${headerName}`, 14, 20);
             doc.text(`Deskripsi: ${headerDescription}`, 14, 30);
+            doc.text(`Bulan: ${activeMonth}`, 14, 40);
             const head = [['Tanggal', 'Nama Transaksi', 'Kategori', 'Tipe', 'Jumlah', 'Berkala']];
             const body = transactions.map(t => [
                 t.date,
@@ -681,16 +793,25 @@
                 `Rp${formatRupiah(t.amount.toString())}`,
                 t.recurring ? 'Ya' : 'Tidak'
             ]);
-            doc.autoTable({
-                startY: 40,
+            const tableConfig = {
+                startY: 50,
                 head: head,
                 body: body,
                 styles: { font: 'times', fontSize: 12 }
-            });
+            };
+            doc.autoTable(tableConfig);
+            // Tambahkan total pemasukan, pengeluaran, dan saldo sisa
+            const finalY = doc.lastAutoTable.finalY || 50; // Posisi Y setelah tabel
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            const totalBalance = totalIncome - totalExpense;
+            doc.text(`Total Pemasukan: Rp${formatRupiah(totalIncome.toString())}`, 14, finalY + 10);
+            doc.text(`Total Pengeluaran: Rp${formatRupiah(totalExpense.toString())}`, 14, finalY + 20);
+            doc.text(`Saldo Sisa: Rp${formatRupiah(totalBalance.toString())}`, 14, finalY + 30);
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             doc.text("By AZ", pageWidth / 2, pageHeight - 10, { align: 'center' });
-            doc.save('transaksi.pdf');
+            doc.save(`transaksi_${activeMonth}.pdf`);
         }
         document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
         document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
@@ -717,10 +838,6 @@
         });
 
         document.getElementById('monthlyBudget').addEventListener('input', (e) => {
-            let numericValue = e.target.value.replace(/\D/g, "");
-            e.target.value = formatRupiah(numericValue);
-        });
-        document.getElementById('editAmount').addEventListener('input', (e) => {
             let numericValue = e.target.value.replace(/\D/g, "");
             e.target.value = formatRupiah(numericValue);
         });
