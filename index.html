@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Money Manager - Pengelola Keuangan Harian</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Chart.js untuk dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Header Aplikasi -->
+  <header class="bg-blue-600 text-white py-6 shadow-md">
+    <div class="container mx-auto text-center">
+      <h1 class="text-4xl font-bold">Money Manager</h1>
+      <p class="mt-2 text-lg">Catat dan kelola keuangan harian Anda</p>
+    </div>
+  </header>
+
+  <main class="container mx-auto p-4 max-w-6xl space-y-6">
+    <!-- Informasi Laporan (Header) -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Informasi Laporan</h2>
+      <form id="headerForm" class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Nama</label>
+          <input type="text" id="headerName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Deskripsi</label>
+          <textarea id="headerDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required></textarea>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors">Simpan Informasi</button>
+      </form>
+    </section>
+
+    <!-- Dashboard Chart -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Dashboard Keuangan</h2>
+      <canvas id="financeChart" class="w-full"></canvas>
+    </section>
+
+    <!-- Budgeting -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Budget Bulanan</h2>
+      <form id="budgetForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Budget (Rp)</label>
+          <input type="text" id="monthlyBudget" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <button type="submit" class="md:col-span-1 bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700 transition-colors">Simpan Budget</button>
+      </form>
+      <p class="mt-4 text-sm text-gray-700">Budget saat ini: <span id="currentBudget">Rp0</span></p>
+    </section>
+
+    <!-- Summary Cards -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-green-100 p-4 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-green-600">Total Pemasukan</h3>
+          <p id="totalIncome" class="text-2xl font-bold text-green-700">Rp0</p>
+        </div>
+        <div class="bg-red-100 p-4 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-red-600">Total Pengeluaran</h3>
+          <p id="totalExpense" class="text-2xl font-bold text-red-700">Rp0</p>
+        </div>
+        <div class="bg-blue-100 p-4 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-blue-600">Saldo Tersisa</h3>
+          <p id="totalBalance" class="text-2xl font-bold text-blue-700">Rp0</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kelola Kategori -->
+    <section class="text-center">
+      <button id="manageCategoryBtn" class="bg-teal-600 text-white px-6 py-2 rounded-md hover:bg-teal-700 transition-colors">Kelola Kategori</button>
+    </section>
+
+    <!-- Form Transaksi -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Tambah Transaksi</h2>
+      <form id="transactionForm" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Tipe Transaksi</label>
+          <select id="type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="income">Pemasukan</option>
+            <option value="expense">Pengeluaran</option>
+          </select>
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Nama Transaksi</label>
+          <input type="text" id="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Kategori</label>
+          <select id="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></select>
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Jumlah (Rp)</label>
+          <input type="text" id="amount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Tanggal</label>
+          <input type="date" id="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <!-- Recurring & Interval -->
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Transaksi Berkala?</label>
+          <input type="checkbox" id="recurring" class="mt-1" />
+        </div>
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium text-gray-700">Interval</label>
+          <select id="interval" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" disabled>
+            <option value="weekly">Mingguan</option>
+            <option value="monthly" selected>Bulanan</option>
+            <option value="yearly">Tahunan</option>
+          </select>
+        </div>
+        <button type="submit" class="md:col-span-2 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">Tambah Transaksi</button>
+      </form>
+    </section>
+
+    <!-- Filter & Export -->
+    <section class="bg-white p-4 rounded-lg shadow-md">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex flex-wrap gap-4 items-center">
+          <div class="flex items-center gap-2">
+            <input type="date" id="startDate" class="rounded-md border-gray-300 shadow-sm" />
+            <span>s/d</span>
+            <input type="date" id="endDate" class="rounded-md border-gray-300 shadow-sm" />
+          </div>
+          <div>
+            <select id="filterCategory" class="rounded-md border-gray-300 shadow-sm">
+              <option value="">Semua Kategori</option>
+            </select>
+          </div>
+          <div>
+            <select id="sort" class="rounded-md border-gray-300 shadow-sm">
+              <option value="">Urutkan</option>
+              <option value="highest">Pengeluaran Terbesar</option>
+              <option value="lowest">Pengeluaran Terkecil</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="exportPdfBtn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">Export PDF</button>
+          <button id="exportExcelBtn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">Export Excel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabel Transaksi -->
+    <section class="bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+      <table class="min-w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No.</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Transaksi</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Berkala</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="transactionList" class="divide-y divide-gray-200">
+          <!-- Data transaksi akan dimuat di sini -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Tips Keuangan -->
+    <section class="bg-white p-6 rounded-lg shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Tips Keuangan</h2>
+      <p id="financialTip" class="text-gray-700">[Tip akan muncul di sini]</p>
+      <button id="refreshTipBtn" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">Ganti Tip</button>
+    </section>
+  </main>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
+      <h3 class="text-xl font-semibold mb-4">Edit Transaksi</h3>
+      <form id="editForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tipe Transaksi</label>
+          <select id="editType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="income">Pemasukan</option>
+            <option value="expense">Pengeluaran</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Nama Transaksi</label>
+          <input type="text" id="editName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Kategori</label>
+          <select id="editCategory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Jumlah (Rp)</label>
+          <input type="text" id="editAmount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Tanggal</label>
+          <input type="date" id="editDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required />
+        </div>
+        <!-- Recurring di Modal Edit -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Transaksi Berkala?</label>
+          <input type="checkbox" id="editRecurring" class="mt-1" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Interval</label>
+          <select id="editInterval" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" disabled>
+            <option value="weekly">Mingguan</option>
+            <option value="monthly" selected>Bulanan</option>
+            <option value="yearly">Tahunan</option>
+          </select>
+        </div>
+        <div class="flex justify-end space-x-2">
+          <button type="button" id="cancelEditBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">Batal</button>
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Kelola Kategori -->
+  <div id="categoryModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+      <h3 class="text-xl font-semibold mb-4">Kelola Kategori</h3>
+      <div id="categoryList" class="mb-4">
+        <!-- Daftar kategori akan tampil di sini -->
+      </div>
+      <div class="mb-4">
+        <input type="text" id="newCategory" placeholder="Kategori baru" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+      </div>
+      <div class="flex justify-end space-x-2">
+        <button type="button" id="closeCategoryModal" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400">Tutup</button>
+        <button type="button" id="addCategoryBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Tambah</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Libraries untuk PDF Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <!-- Library ExcelJS dan FileSaver untuk Excel Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <script>
+    /* ===============================
+       Inisialisasi Data Global
+       =============================== */
+    const STORAGE_KEY = 'transactions';
+    const BUDGET_KEY = 'monthlyBudget';
+    const CATEGORY_KEY = 'categories';
+    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    let monthlyBudget = localStorage.getItem(BUDGET_KEY) || 0;
+    let categories = JSON.parse(localStorage.getItem(CATEGORY_KEY)) || ["Umum", "Gaji", "Makanan", "Transportasi", "Hiburan"];
+
+    const tips = [
+      "Catat pengeluaran harian Anda agar lebih sadar finansial.",
+      "Tetapkan anggaran dan usahakan untuk tidak melebihi batasnya.",
+      "Selalu sisihkan sebagian pendapatan untuk tabungan.",
+      "Evaluasi pengeluaran bulanan untuk menemukan area penghematan.",
+      "Hindari pembelian impulsif dengan membuat daftar belanja."
+    ];
+
+    /* ===============================
+       Fungsi Utilitas
+       =============================== */
+    function formatRupiah(value) {
+      return value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    function updateLocalStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    }
+    function updateBudgetStorage() {
+      localStorage.setItem(BUDGET_KEY, monthlyBudget);
+    }
+    function updateCategoryStorage() {
+      localStorage.setItem(CATEGORY_KEY, JSON.stringify(categories));
+    }
+
+    /* ===============================
+       Dashboard Chart (Bar Chart: Income vs Expense)
+       =============================== */
+    let chart;
+    function initChart() {
+      const ctx = document.getElementById('financeChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Pemasukan', 'Pengeluaran'],
+          datasets: [{
+            label: 'Jumlah (Rp)',
+            data: [0, 0],
+            backgroundColor: ['#34D399', '#F87171']
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+    function updateChart() {
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      chart.data.datasets[0].data = [totalIncome, totalExpense];
+      chart.update();
+    }
+
+    /* ===============================
+       Budgeting
+       =============================== */
+    function updateBudgetDisplay() {
+      document.getElementById('currentBudget').textContent = `Rp${formatRupiah(monthlyBudget.toString())}`;
+    }
+
+    /* ===============================
+       Tips Keuangan
+       =============================== */
+    function refreshTip() {
+      const tip = tips[Math.floor(Math.random() * tips.length)];
+      document.getElementById('financialTip').textContent = tip;
+    }
+
+    /* ===============================
+       Category Management
+       =============================== */
+    function populateCategorySelect() {
+      const categorySelect = document.getElementById('category');
+      const editCategorySelect = document.getElementById('editCategory');
+      const filterCategorySelect = document.getElementById('filterCategory');
+      categorySelect.innerHTML = '';
+      editCategorySelect.innerHTML = '';
+      filterCategorySelect.innerHTML = '<option value="">Semua Kategori</option>';
+      categories.forEach(cat => {
+        const option = `<option value="${cat}">${cat}</option>`;
+        categorySelect.innerHTML += option;
+        editCategorySelect.innerHTML += option;
+        filterCategorySelect.innerHTML += option;
+      });
+    }
+    function renderCategoryList() {
+      const listDiv = document.getElementById('categoryList');
+      listDiv.innerHTML = '';
+      categories.forEach((cat, index) => {
+        listDiv.innerHTML += `<div class="flex justify-between items-center mb-2">
+          <span>${cat}</span>
+          <button onclick="deleteCategory(${index})" class="text-red-600 hover:text-red-900">Hapus</button>
+        </div>`;
+      });
+    }
+    function deleteCategory(index) {
+      categories.splice(index, 1);
+      updateCategoryStorage();
+      populateCategorySelect();
+      renderCategoryList();
+    }
+
+    /* ===============================
+       Inisialisasi Event & Tampilan Saat Halaman Dimuat
+       =============================== */
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+      initChart();
+      updateChart();
+      updateBudgetDisplay();
+      populateCategorySelect();
+      refreshTip();
+      updateUI();
+    });
+    document.getElementById('refreshTipBtn').addEventListener('click', refreshTip);
+
+    /* ===============================
+       Header Form Handling
+       =============================== */
+    const headerForm = document.getElementById('headerForm');
+    let reportHeader = JSON.parse(localStorage.getItem('reportHeader')) || { name: '', description: '' };
+    function loadHeader() {
+      document.getElementById('headerName').value = reportHeader.name;
+      document.getElementById('headerDescription').value = reportHeader.description;
+    }
+    loadHeader();
+    headerForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      reportHeader = {
+        name: document.getElementById('headerName').value.trim(),
+        description: document.getElementById('headerDescription').value.trim()
+      };
+      localStorage.setItem('reportHeader', JSON.stringify(reportHeader));
+      alert("Informasi laporan disimpan!");
+    });
+
+    /* ===============================
+       Budget Form Handling
+       =============================== */
+    const budgetForm = document.getElementById('budgetForm');
+    budgetForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const rawBudget = document.getElementById('monthlyBudget').value.replace(/\D/g, "");
+      monthlyBudget = rawBudget;
+      updateBudgetStorage();
+      updateBudgetDisplay();
+      alert("Budget bulanan disimpan!");
+    });
+
+    /* ===============================
+       Transaction Form Handling
+       =============================== */
+    const transactionForm = document.getElementById('transactionForm');
+    const amountInput = document.getElementById('amount');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const sortSelect = document.getElementById('sort');
+
+    amountInput.addEventListener('input', (e) => {
+      let numericValue = e.target.value.replace(/\D/g, "");
+      e.target.value = formatRupiah(numericValue);
+    });
+    document.getElementById('recurring').addEventListener('change', function () {
+      document.getElementById('interval').disabled = !this.checked;
+    });
+    transactionForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const rawAmount = document.getElementById('amount').value.replace(/\./g, "");
+      const transaction = {
+        id: Date.now(),
+        type: document.getElementById('type').value,
+        name: document.getElementById('name').value.trim(),
+        amount: parseInt(rawAmount),
+        date: document.getElementById('date').value,
+        category: document.getElementById('category').value,
+        recurring: document.getElementById('recurring').checked,
+        interval: document.getElementById('interval').value
+      };
+      transactions.push(transaction);
+      updateLocalStorage();
+      updateUI();
+      transactionForm.reset();
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    });
+
+    /* ===============================
+       Delete Transaction
+       =============================== */
+    function deleteTransaction(id) {
+      transactions = transactions.filter(transaction => transaction.id !== id);
+      updateLocalStorage();
+      updateUI();
+    }
+
+    /* ===============================
+       Edit Modal Handling
+       =============================== */
+    let editingTransactionId = null;
+    function openEditModal(id) {
+      const transaction = transactions.find(t => t.id === id);
+      if (transaction) {
+        editingTransactionId = id;
+        document.getElementById('editType').value = transaction.type;
+        document.getElementById('editName').value = transaction.name;
+        document.getElementById('editCategory').value = transaction.category;
+        document.getElementById('editAmount').value = formatRupiah(transaction.amount.toString());
+        document.getElementById('editDate').value = transaction.date;
+        document.getElementById('editRecurring').checked = transaction.recurring;
+        document.getElementById('editInterval').disabled = !transaction.recurring;
+        document.getElementById('editInterval').value = transaction.interval;
+        document.getElementById('editModal').classList.remove('hidden');
+      }
+    }
+    function closeEditModal() {
+      editingTransactionId = null;
+      document.getElementById('editModal').classList.add('hidden');
+      document.getElementById('editForm').reset();
+    }
+    document.getElementById('cancelEditBtn').addEventListener('click', closeEditModal);
+    document.getElementById('editRecurring').addEventListener('change', function () {
+      document.getElementById('editInterval').disabled = !this.checked;
+    });
+    document.getElementById('editForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const rawAmount = document.getElementById('editAmount').value.replace(/\./g, "");
+      const updatedTransaction = {
+        id: editingTransactionId,
+        type: document.getElementById('editType').value,
+        name: document.getElementById('editName').value.trim(),
+        category: document.getElementById('editCategory').value,
+        amount: parseInt(rawAmount),
+        date: document.getElementById('editDate').value,
+        recurring: document.getElementById('editRecurring').checked,
+        interval: document.getElementById('editInterval').value
+      };
+      transactions = transactions.map(t => t.id === editingTransactionId ? updatedTransaction : t);
+      updateLocalStorage();
+      updateUI();
+      closeEditModal();
+    });
+
+    /* ===============================
+       Update UI dan Tabel Transaksi
+       =============================== */
+    function updateUI() {
+      let filteredTransactions = transactions.slice();
+      if (startDateInput.value) {
+        filteredTransactions = filteredTransactions.filter(t => t.date >= startDateInput.value);
+      }
+      if (endDateInput.value) {
+        filteredTransactions = filteredTransactions.filter(t => t.date <= endDateInput.value);
+      }
+      const filterCat = document.getElementById('filterCategory').value;
+      if (filterCat) {
+        filteredTransactions = filteredTransactions.filter(t => t.category === filterCat);
+      }
+      if (sortSelect.value === 'highest') {
+        filteredTransactions.sort((a, b) => b.amount - a.amount);
+      } else if (sortSelect.value === 'lowest') {
+        filteredTransactions.sort((a, b) => a.amount - b.amount);
+      }
+      document.getElementById('transactionList').innerHTML = filteredTransactions.map((transaction, index) => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap">${index + 1}</td>
+          <td class="px-6 py-4 whitespace-nowrap">${transaction.date}</td>
+          <td class="px-6 py-4">${transaction.name}</td>
+          <td class="px-6 py-4">${transaction.category}</td>
+          <td class="px-6 py-4">
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+              ${transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+            </span>
+          </td>
+          <td class="px-6 py-4 ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}">
+            Rp${formatRupiah(transaction.amount.toString())}
+          </td>
+          <td class="px-6 py-4">${transaction.recurring ? 'Ya' : 'Tidak'}</td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <button onclick="openEditModal(${transaction.id})" class="text-blue-600 hover:text-blue-900 mr-2">Edit</button>
+            <button onclick="deleteTransaction(${transaction.id})" class="text-red-600 hover:text-red-900">Hapus</button>
+          </td>
+        </tr>
+      `).join('');
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      document.getElementById('totalIncome').textContent = `Rp${formatRupiah(totalIncome.toString())}`;
+      document.getElementById('totalExpense').textContent = `Rp${formatRupiah(totalExpense.toString())}`;
+      document.getElementById('totalBalance').textContent = `Rp${formatRupiah((totalIncome - totalExpense).toString())}`;
+      updateChart();
+    }
+    startDateInput.addEventListener('change', updateUI);
+    endDateInput.addEventListener('change', updateUI);
+    sortSelect.addEventListener('change', updateUI);
+    document.getElementById('filterCategory').addEventListener('change', updateUI);
+
+    /* ===============================
+       Export ke Excel & PDF
+       =============================== */
+    function exportExcel() {
+      if (transactions.length === 0) {
+        alert("Tidak ada transaksi untuk diekspor!");
+        return;
+      }
+      const headerName = reportHeader.name || "";
+      const headerDescription = reportHeader.description || "";
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Transaksi');
+      worksheet.addRow(['Nama', headerName]);
+      worksheet.addRow(['Deskripsi', headerDescription]);
+      worksheet.addRow([]);
+      const headerRow = worksheet.addRow(['Tanggal', 'Nama Transaksi', 'Kategori', 'Tipe', 'Jumlah', 'Berkala']);
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFF99' }
+        };
+        cell.font = { bold: true, size: 12, name: 'Times New Roman' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+      transactions.forEach(t => {
+        worksheet.addRow([
+          t.date,
+          t.name,
+          t.category,
+          t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
+          t.amount,
+          t.recurring ? 'Ya' : 'Tidak'
+        ]);
+      });
+      worksheet.columns = [
+        { width: 15 },
+        { width: 30 },
+        { width: 20 },
+        { width: 15 },
+        { width: 20 },
+        { width: 15 }
+      ];
+      workbook.xlsx.writeBuffer().then(buffer => {
+        saveAs(new Blob([buffer]), 'transaksi.xlsx');
+      });
+    }
+    function exportPDF() {
+      if (transactions.length === 0) {
+        alert("Tidak ada transaksi untuk diekspor!");
+        return;
+      }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFont('times', 'normal');
+      doc.setFontSize(12);
+      const headerName = reportHeader.name || "";
+      const headerDescription = reportHeader.description || "";
+      doc.text(`Nama: ${headerName}`, 14, 20);
+      doc.text(`Deskripsi: ${headerDescription}`, 14, 30);
+      const head = [['Tanggal', 'Nama Transaksi', 'Kategori', 'Tipe', 'Jumlah', 'Berkala']];
+      const body = transactions.map(t => [
+        t.date,
+        t.name,
+        t.category,
+        t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
+        `Rp${formatRupiah(t.amount.toString())}`,
+        t.recurring ? 'Ya' : 'Tidak'
+      ]);
+      doc.autoTable({
+        startY: 40,
+        head: head,
+        body: body,
+        styles: { font: 'times', fontSize: 12 }
+      });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.text("By AZ", pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.save('transaksi.pdf');
+    }
+    document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
+    document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+
+    /* ===============================
+       Modal Category Handling
+       =============================== */
+    document.getElementById('manageCategoryBtn').addEventListener('click', () => {
+      document.getElementById('categoryModal').classList.remove('hidden');
+      renderCategoryList();
+    });
+    document.getElementById('closeCategoryModal').addEventListener('click', () => {
+      document.getElementById('categoryModal').classList.add('hidden');
+    });
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+      const newCat = document.getElementById('newCategory').value.trim();
+      if (newCat && !categories.includes(newCat)) {
+        categories.push(newCat);
+        updateCategoryStorage();
+        populateCategorySelect();
+        renderCategoryList();
+        document.getElementById('newCategory').value = '';
+      }
+    });
+  </script>
+</body>
+</html>
