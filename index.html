@@ -842,6 +842,11 @@
             e.target.value = formatRupiah(numericValue);
         });
 
+        document.getElementById('editAmount').addEventListener('input', (e) => {
+            let numericValue = e.target.value.replace(/\D/g, "");
+            e.target.value = formatRupiah(numericValue);
+        });
+
     </script>
 </body>
 
